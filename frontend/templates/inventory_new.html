@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}Склад{% endblock %}
+
+{% block content %}
+    <h1>Склад</h1>
+    
+    <!-- Фильтры -->
+    <div class="filters">
+        <h3>Фильтры</h3>
+        <form id="filterForm" method="get">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="period">Период</label>
+                    <select class="form-select" id="period" name="period">
+                        <option value="day" {% if selected_period == 'day' %}selected{% endif %}>День</option>
+                        <option value="week" {% if selected_period == 'week' %}selected{% endif %}>Неделя</option>
+                        <option value="month" {% if selected_period == 'month' %}selected{% endif %}>Месяц</option>
+                        <option value="quarter" {% if selected_period == 'quarter' %}selected{% endif %}>Квартал</option>
+                        <option value="year" {% if selected_period == 'year' %}selected{% endif %}>Год</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="shop">Цех</label>
+                    <select class="form-select" id="shop" name="shop" multiple>
+                        {% for shop in shops %}
+                            <option value="{{ shop.id }}" {% if shop.id in selected_shops %}selected{% endif %}>{{ shop.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="category">Категория</label>
+                    <select class="form-select" id="category" name="category" multiple>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}" {% if category.id in selected_categories %}selected{% endif %}>{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group d-flex align-items-end">
+                    <button type="submit" class="apply-button me-2">
+                        Применить
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" id="resetFilters">
+                        Сбросить
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- KPI-виджеты -->
+    <div class="kpi-cards">
+        <div class="kpi-card">
+            <h4>Общий уровень остатков</h4>
+            <p class="value">{{ total_inventory|floatformat:0 }} ед.</p>
+        </div>
+        <div class="kpi-card">
+            <h4>Позиций с дефицитом</h4>
+            <p class="value">{{ deficit_positions|floatformat:0 }}</p>
+        </div>
+        <div class="kpi-card">
+            <h4>Оборачиваемость</h4>
+            <p class="value">{{ turnover_rate|floatformat:1 }} раз/мес</p>
+        </div>
+        <div class="kpi-card">
+            <h4>Общая стоимость</h4>
+            <p class="value">{{ total_value|floatformat:2 }} руб.</p>
+        </div>
+    </div>
+    
+    <!-- Графики -->
+    <div class="charts">
+        <div class="chart-container">
+            <h3>Остатки по категориям</h3>
+            <div class="chart-wrapper">
+                <canvas id="inventoryByCategoryChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-container">
+            <h3>Дефицитные позиции</h3>
+            <div class="chart-wrapper">
+                <canvas id="shortageChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-container">
+            <h3>Динамика остатков</h3>
+            <div class="chart-wrapper">
+                <canvas id="inventoryTrendChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-container">
+            <h3>Оборачиваемость по категориям</h3>
+            <div class="chart-wrapper">
+                <canvas id="turnoverChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Таблица остатков -->
+    <div class="table-container">
+        <h3>Таблица остатков</h3>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Артикул</th>
+                        <th>Наименование</th>
+                        <th>Категория</th>
+                        <th>Цех</th>
+                        <th>В наличии</th>
+                        <th>Зарезервировано</th>
+                        <th>Доступно</th>
+                        <th>Мин. порог</th>
+                        <th>Потребность</th>
+                        <th>Дефицит</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in page_obj %}
+                    <tr>
+                        <td>{{ record.item.sku }}</td>
+                        <td>{{ record.item.name }}</td>
+                        <td>{{ record.item.category.name }}</td>
+                        <td>{{ record.shop.name }}</td>
+                        <td>{{ record.quantity|floatformat:0 }}</td>
+                        <td>{{ record.reserved|floatformat:0 }}</td>
+                        <td>{{ record.available|floatformat:0 }}</td>
+                        <td>{{ record.min_threshold|floatformat:0 }}</td>
+                        <td>{{ record.demand|floatformat:0 }}</td>
+                        <td class="{% if record.shortage > 0 %}text-danger{% endif %}">{{ record.shortage|floatformat:0 }}</td>
+                        <td>
+                            <span class="badge 
+                                {% if record.shortage > 0 %}bg-danger
+                                {% elif record.quantity <= record.min_threshold %}bg-warning
+                                {% else %}bg-success{% endif %}">
+                                {% if record.shortage > 0 %}Дефицит
+                                {% elif record.quantity <= record.min_threshold %}Низкий запас
+                                {% else %}Норма{% endif %}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="11" class="text-center">Нет данных для отображения</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Пагинация -->
+        {% if page_obj.has_other_pages %}
+        <nav aria-label="Навигация по страницам">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1">Первая</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">Предыдущая</a>
+                    </li>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">Следующая</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.paginator.num_pages }}">Последняя</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Обработчик кнопки сброса фильтров на странице склада
+    document.addEventListener('DOMContentLoaded', function() {
+        const resetButton = document.getElementById('resetFilters');
+        if (resetButton) {
+            resetButton.addEventListener('click', function() {
+                // Сбрасываем все фильтры к значениям по умолчанию
+                document.getElementById('period').value = 'month';
+                
+                // Снимаем выделение со всех цехов
+                const shopSelect = document.getElementById('shop');
+                for (let i = 0; i < shopSelect.options.length; i++) {
+                    shopSelect.options[i].selected = false;
+                }
+                
+                // Снимаем выделение со всех категорий
+                const categorySelect = document.getElementById('category');
+                for (let i = 0; i < categorySelect.options.length; i++) {
+                    categorySelect.options[i].selected = false;
+                }
+                
+                // Обновляем форму
+                document.getElementById('filterForm').submit();
+            });
+        }
+        
+        // Обработчик изменения фильтров для динамического обновления
+        const filterForm = document.getElementById('filterForm');
+        if (filterForm) {
+            const filterElements = filterForm.querySelectorAll('select');
+            filterElements.forEach(element => {
+                element.addEventListener('change', function() {
+                    // Дебаунс для предотвращения частых запросов
+                    clearTimeout(window.filterTimeout);
+                    window.filterTimeout = setTimeout(() => {
+                        filterForm.submit();
+                    }, 300);
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

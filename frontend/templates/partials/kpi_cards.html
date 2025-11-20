@@ -1,0 +1,34 @@
+<div class="kpi-cards">
+    <div class="kpi-card">
+        <h4>Объем выпуска</h4>
+        <p class="value">{{ total_output|floatformat:0 }} ед.</p>
+    </div>
+    <div class="kpi-card">
+        <h4>Простои</h4>
+        <p class="value">{{ avg_downtime }} ч</p>
+    </div>
+    <div class="kpi-card">
+        <h4>Брак</h4>
+        <p class="value">{{ avg_defect_rate }}%</p>
+    </div>
+    <div class="kpi-card">
+        <h4>Загрузка оборудования</h4>
+        <p class="value">{{ avg_equipment_load }}%</p>
+    </div>
+    <div class="kpi-card">
+        <h4>Остатки на складе</h4>
+        <p class="value">{{ total_inventory|floatformat:0 }} ед.</p>
+    </div>
+    <div class="kpi-card">
+        <h4>Изготовлено шкафов</h4>
+        <p class="value">{{ total_cabinets|floatformat:0 }} шт.</p>
+    </div>
+    <div class="kpi-card">
+        <h4>Выполнение плана</h4>
+        <p class="value">{{ avg_plan_completion }}%</p>
+    </div>
+    <div class="kpi-card">
+        <h4>Индекс качества</h4>
+        <p class="value">{{ avg_quality_index }}%</p>
+    </div>
+</div>

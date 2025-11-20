@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Отчеты{% endblock %}
+
+{% block content %}
+    <h1>Отчеты</h1>
+    
+    <!-- Фильтры -->
+    <div class="filters">
+        <h3>Фильтры</h3>
+        <form id="filterForm" method="get">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="period">Период</label>
+                    <select class="form-select" id="period" name="period">
+                        <option value="day" {% if selected_period == 'day' %}selected{% endif %}>День</option>
+                        <option value="week" {% if selected_period == 'week' %}selected{% endif %}>Неделя</option>
+                        <option value="month" {% if selected_period == 'month' %}selected{% endif %}>Месяц</option>
+                        <option value="quarter" {% if selected_period == 'quarter' %}selected{% endif %}>Квартал</option>
+                        <option value="year" {% if selected_period == 'year' %}selected{% endif %}>Год</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="shop">Цех</label>
+                    <select class="form-select" id="shop" name="shop" multiple>
+                        {% for shop in shops %}
+                            <option value="{{ shop.id }}" {% if shop.id in selected_shops %}selected{% endif %}>{{ shop.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Тип показателя</label>
+                    <div class="filter-checkboxes">
+                        <div class="filter-checkbox">
+                            <input type="checkbox" id="output" name="indicator" value="output" {% if 'output' in selected_indicators or selected_indicators|length == 0 %}checked{% endif %}>
+                            <label for="output">Выпуск</label>
+                        </div>
+                        <div class="filter-checkbox">
+                            <input type="checkbox" id="downtime" name="indicator" value="downtime" {% if 'downtime' in selected_indicators or selected_indicators|length == 0 %}checked{% endif %}>
+                            <label for="downtime">Простои</label>
+                        </div>
+                        <div class="filter-checkbox">
+                            <input type="checkbox" id="defect" name="indicator" value="defect" {% if 'defect' in selected_indicators or selected_indicators|length == 0 %}checked{% endif %}>
+                            <label for="defect">Брак</label>
+                        </div>
+                        <div class="filter-checkbox">
+                            <input type="checkbox" id="load" name="indicator" value="load" {% if 'load' in selected_indicators or selected_indicators|length == 0 %}checked{% endif %}>
+                            <label for="load">Загрузка</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="filter-group d-flex align-items-end">
+                    <button type="submit" class="apply-button me-2">
+                        Применить
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" id="resetFilters">
+                        Сбросить
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Таблица отчетов -->
+    <div class="table-container">
+        <h3>Таблица отчетов</h3>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Цех</th>
+                        <th>Объем выпуска</th>
+                        <th>Часы простоя</th>
+                        <th>Процент брака</th>
+                        <th>Общий уровень остатков</th>
+                        <th>Изготовлено шкафов</th>
+                        <th>Выполнение плана (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in page_obj %}
+                    <tr>
+                        <td>{{ record.date }}</td>
+                        <td>{{ record.shop.name }}</td>
+                        <td>{{ record.output|floatformat:0 }}</td>
+                        <td>{{ record.downtime_hours|floatformat:1 }}</td>
+                        <td>{{ record.defect_rate|floatformat:2 }}%</td>
+                        <td>{{ record.inventory_level|floatformat:0 }}</td>
+                        <td>{{ record.cabinets_produced|floatformat:0 }}</td>
+                        <td>{{ record.plan_completion|floatformat:1 }}%</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center">Нет данных для отображения</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Пагинация -->
+        {% if page_obj.has_other_pages %}
+        <nav aria-label="Навигация по страницам">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1">Первая</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">Предыдущая</a>
+                    </li>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">Следующая</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.paginator.num_pages }}">Последняя</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+    
+    <!-- Кнопки экспорта -->
+    <div class="d-flex justify-content-center mt-3">
+        <button type="button" class="btn btn-success btn-sm me-2" onclick="showToast('Данные экспортированы в Excel', 'success')">
+            Экспорт в Excel
+        </button>
+        <button type="button" class="btn btn-danger btn-sm" onclick="showToast('Данные экспортированы в PDF', 'success')">
+            Экспорт в PDF
+        </button>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Обработчик кнопки сброса фильтров на странице отчетов
+    document.addEventListener('DOMContentLoaded', function() {
+        const resetButton = document.getElementById('resetFilters');
+        if (resetButton) {
+            resetButton.addEventListener('click', function() {
+                // Сбрасываем все фильтры к значениям по умолчанию
+                document.getElementById('period').value = 'month';
+                
+                // Снимаем выделение со всех цехов
+                const shopSelect = document.getElementById('shop');
+                for (let i = 0; i < shopSelect.options.length; i++) {
+                    shopSelect.options[i].selected = false;
+                }
+                
+                // Ставим галочки на все индикаторы по умолчанию
+                const indicators = document.querySelectorAll('input[name="indicator"]');
+                indicators.forEach(indicator => {
+                    indicator.checked = true;
+                });
+                
+                // Обновляем форму
+                document.getElementById('filterForm').submit();
+            });
+        }
+        
+        // Обработчик изменения фильтров для динамического обновления
+        const filterForm = document.getElementById('filterForm');
+        if (filterForm) {
+            const filterElements = filterForm.querySelectorAll('select, input[name="indicator"]');
+            filterElements.forEach(element => {
+                element.addEventListener('change', function() {
+                    // Дебаунс для предотвращения частых запросов
+                    clearTimeout(window.filterTimeout);
+                    window.filterTimeout = setTimeout(() => {
+                        filterForm.submit();
+                    }, 300);
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

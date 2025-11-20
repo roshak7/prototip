@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Склад{% endblock %}
+
+{% block content %}
+<div class="inventory-page">
+    <h1>Склад</h1>
+
+    <form id="inventoryFilters" class="filters" method="get" data-endpoint="{% url 'inventory_data' %}">
+        <div class="filter-row">
+            <div class="filter-group">
+                <label for="period">Период</label>
+                <select class="form-select" id="period" name="period">
+                    {% for value, label in period_choices %}
+                        <option value="{{ value }}" {% if value == selected_filters.period %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="category">Категория</label>
+                <select class="form-select" id="category" name="category">
+                    <option value="">Все категории</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category.id == selected_filters.category_id %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="shop">Цех</label>
+                <select class="form-select" id="shop" name="shop">
+                    <option value="">Все цеха</option>
+                    {% for shop in shops %}
+                        <option value="{{ shop.id }}" {% if shop.id in selected_filters.shop_ids %}selected{% endif %}>{{ shop.name }}</option>
+                    {% endfor %}
+                </select>
+                <div class="filter-indicator text-muted small mt-1" id="shopSelectionIndicator"></div>
+            </div>
+            <div class="filter-group d-flex align-items-end gap-2">
+                <button type="submit" class="apply-button" id="applyFilters" data-skip-toast="true">
+                    Применить
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="resetInventoryFilters">
+                    Сбросить
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <div class="kpi-cards">
+        <div class="kpi-card">
+            <h4>Общий уровень остатков</h4>
+            <p class="value" id="inventoryTotalQuantity">{{ inventory_data.summary.total_quantity }} ед.</p>
+        </div>
+        <div class="kpi-card">
+            <h4>Позиций с дефицитом</h4>
+            <p class="value" id="inventoryDeficitPositions">{{ inventory_data.summary.deficit_positions }}</p>
+        </div>
+        <div class="kpi-card">
+            <h4>Потребность</h4>
+            <p class="value" id="inventoryTotalValue">{{ inventory_data.summary.total_value }} ₽</p>
+        </div>
+        <div class="kpi-card">
+            <h4>Средняя оборачиваемость</h4>
+            <p class="value" id="inventoryAverageTurnover">{{ inventory_data.summary.average_turnover }} раз/мес</p>
+        </div>
+    </div>
+
+    <div class="charts">
+        <div class="chart-container">
+            <h3>Остатки по категориям</h3>
+            <div class="chart-wrapper">
+                <canvas id="inventoryByCategoryChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-container">
+            <h3>Дефицитные позиции</h3>
+            <div class="chart-wrapper">
+                <canvas id="shortageChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-container">
+            <h3>Динамика остатков</h3>
+            <div class="chart-wrapper">
+                <canvas id="inventoryTrendChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-container">
+            <h3>Оборачиваемость по категориям</h3>
+            <div class="chart-wrapper">
+                <canvas id="turnoverChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <h3>Таблица остатков</h3>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle" id="inventoryTable">
+                <thead>
+                    <tr>
+                        <th>Артикул</th>
+                        <th>Наименование</th>
+                        <th>Категория</th>
+                        <th>В наличии</th>
+                        <th>Зарезервировано</th>
+                        <th>Доступно</th>
+                        <th>Мин. порог</th>
+                        <th>Потребность</th>
+                        <th>Дефицит</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody id="inventoryTableBody">
+                    {% for row in inventory_data.table.rows %}
+                        <tr>
+                            <td>{{ row.sku }}</td>
+                            <td>{{ row.name }}</td>
+                            <td>{{ row.category }}</td>
+                            <td>{{ row.quantity }}</td>
+                            <td>{{ row.reserved }}</td>
+                            <td>{{ row.available }}</td>
+                            <td>{{ row.min_threshold }}</td>
+                            <td>{{ row.demand }}</td>
+                            <td class="{% if row.shortage > 0 %}text-danger{% endif %}">{{ row.shortage }}</td>
+                            <td>
+                                <span class="badge bg-{{ row.status_class }}">{{ row.status }}</span>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="10" class="text-center text-muted py-4">
+                                Нет данных за выбранный период
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    window.INVENTORY_INITIAL_DATA = {{ inventory_data_json|safe }};
+</script>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Личный кабинет{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mb-4">Личный кабинет</h1>
+    
+    <!-- Карточка пользователя -->
+    <div class="table-container">
+        <h3>Информация о пользователе</h3>
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>ФИО:</strong> Иванов И.И.</p>
+                <p><strong>Роль:</strong> Руководитель</p>
+                <p><strong>Последний вход:</strong> 12 апреля 2025, 10:30</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- История действий -->
+    <div class="table-container mt-4">
+        <h3>История действий</h3>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Действие</th>
+                        <th>Время</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Вход в систему</td>
+                        <td>2025-04-12 10:30</td>
+                    </tr>
+                    <tr>
+                        <td>Изменение фильтра 'Период' на 'Неделя'</td>
+                        <td>2025-04-12 10:32</td>
+                    </tr>
+                    <tr>
+                        <td>Экспорт отчета в Excel</td>
+                        <td>2025-04-12 10:35</td>
+                    </tr>
+                    <tr>
+                        <td>Переход на страницу 'Уведомления'</td>
+                        <td>2025-04-12 10:40</td>
+                    </tr>
+                    <tr>
+                        <td>Настройка порога: 'Простои > 5 ч'</td>
+                        <td>2025-04-12 10:45</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

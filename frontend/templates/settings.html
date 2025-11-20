@@ -1,0 +1,72 @@
+{% block extra_js %}
+<script>
+    function promptForPath(inputId, extension) {
+        const target = document.getElementById(inputId);
+        if (!target) return;
+        const example = extension === 'xml' ? '\\server\\exports\\kpi.xml' : 'C:\\Data\\warehouse.accdb';
+        const value = prompt(`Укажите путь к файлу (${extension.toUpperCase()}):`, target.value || example);
+        if (value !== null) {
+            target.value = value.trim();
+        }
+    }
+
+    function testDataSource(kind) {
+        const enabled = document.getElementById(kind === '1c' ? 'source1cEnabled' : 'sourceAccessEnabled').checked;
+        if (!enabled) {
+            showToast('Источник отключен — включите его для проверки.', 'warning');
+            return;
+        }
+        const path = document.getElementById(kind === '1c' ? 'source1cPath' : 'sourceAccessPath').value.trim();
+        if (!path) {
+            showToast('Укажите путь к файлу источника.', 'danger');
+            return;
+        }
+        showToast('Проверяем подключение…', 'info');
+        setTimeout(() => showToast('Подключение успешно установлено.', 'success'), 1200);
+    }
+
+    function simulateImport(kind) {
+        const enabled = document.getElementById(kind === '1c' ? 'source1cEnabled' : 'sourceAccessEnabled').checked;
+        if (!enabled) {
+            showToast('Источник отключен — включите его для импорта.', 'warning');
+            return;
+        }
+        showToast('Импорт данных запущен…', 'info');
+        setTimeout(() => {
+            const field = document.getElementById(kind === '1c' ? 'source1cLastSync' : 'sourceAccessLastSync');
+            if (field) {
+                field.value = new Date().toLocaleString('ru-RU');
+            }
+            showToast('Импорт завершен успешно.', 'success');
+        }, 1500);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const toggleMap = [
+            {
+                checkbox: document.getElementById('source1cEnabled'),
+                panel: document.querySelector('#source1cEnabled').closest('.card').querySelector('.card-body'),
+            },
+            {
+                checkbox: document.getElementById('sourceAccessEnabled'),
+                panel: document.getElementById('sourceAccessEnabled').closest('.card').querySelector('.card-body'),
+            },
+        ];
+
+        toggleMap.forEach(({ checkbox, panel }) => {
+            if (!checkbox || !panel) return;
+            const toggle = () => {
+                panel.classList.toggle('opacity-50', !checkbox.checked);
+                panel.querySelectorAll('input, select, button').forEach(control => {
+                    if (control.type !== 'checkbox') {
+                        control.disabled = !checkbox.checked && control.id !== 'source1cLastSync' && control.id !== 'sourceAccessLastSync';
+                    }
+                });
+            };
+            checkbox.addEventListener('change', toggle);
+            toggle();
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}
